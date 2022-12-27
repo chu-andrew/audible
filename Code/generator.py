@@ -42,11 +42,19 @@ def chunk_data(data, chunk_len):
 def get_tones(data, chunk_len):
     tone_map = generate_tone_map(chunk_len)
     bits = get_bitstring(data)
+    print(bits)
     tones = bits_to_tones(bits, tone_map, chunk_len)
 
     return tones
 
 
+def generate_wav(tones):
+    # https://stackoverflow.com/questions/40782159/writing-wav-file-using-python-numpy-array-and-wave-module
+    # TODO
+    return 0
+
+
 if __name__ == "__main__":
     data_file = "../Data/hello_world.txt"
-    print(get_tones(data_file, 1))
+    tones = get_tones(data_file, 1)
+    print(tones)
