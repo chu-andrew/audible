@@ -1,4 +1,4 @@
-import generator
+import encoding
 
 
 def decode_txt_file(bitstring):
@@ -10,9 +10,12 @@ def decode_txt_file(bitstring):
     return ascii_data
 
 
+# look at anchor project for receiver
+
+
 if __name__ == "__main__":
     data_file = "../Data/hello_world.txt"
-    bits = generator.get_bitstring(data_file)
+    bits = encoding.get_bitstring(data_file)
     print(bits)
 
     decoded = decode_txt_file(bits)
