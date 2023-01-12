@@ -28,3 +28,21 @@ if __name__ == '__main__':
     peaks, _ = scipy.signal.find_peaks(yf, THRESHOLD)
     print(peaks)
     print(len(peaks))
+    
+    
+    y = signal
+    N = signal.length
+    Y_k = np.fft.fft(y)[0:int(N/2)]/N 
+    Y_k[1:] = 2*Y_k[1:] 
+    Pxx = np.abs(Y_k) 
+    f = SAMPLE_RATE*np.arange((N/2))/N 
+    fig,ax = plt.subplots()
+    plt.plot(f,Pxx)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    plt.ylabel('Amplitude idk units lmao')
+    plt.xlabel('Frequency hz')
+    plt.show()
+def send():
+    samplesPerFrameOut = (sampleRateOut/SAMPLE_RATE)*samplesPerFrame
+    
