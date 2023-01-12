@@ -1,13 +1,17 @@
 import bitstring
+import compression
 
 
-def get_bitstring(filename):
-    return str(bitstring.BitArray(filename=filename).bin)
+def get_bitstring(filename, compress):
+    with open(filename, 'rb') as f:
+        data = f.read()
+    if compress: data = compression.compress(data)
+    return str(bitstring.BitArray(data).bin)
 
 
 def generate_tone_map(chunk_len):
     F_MIN = 200  # 1875.000  # Hz
-    F_MAX = 6000  # 6328.125
+    F_MAX = 5000  # 6328.125
 
     f_range = F_MAX - F_MIN
     possibilities = 2 ** chunk_len
@@ -44,8 +48,8 @@ def chunk_data(data, chunk_len):
         yield chunk
 
 
-def get_tones(data, chunk_len, debug):
-    bits = get_bitstring(data)
+def get_tones(data, chunk_len, compress, debug):
+    bits = get_bitstring(data, compress)
     tone_map = generate_tone_map(chunk_len)
 
     tones = bits_to_tones(bits, tone_map, chunk_len)
@@ -63,4 +67,4 @@ def get_tones(data, chunk_len, debug):
 
 if __name__ == '__main__':
     data_file = "../Data/hello_world.txt"
-    tones = get_tones(data_file, 2, True)
+    tones = get_tones(data_file, 2, False, True)

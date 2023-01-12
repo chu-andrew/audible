@@ -5,17 +5,12 @@ from tqdm import tqdm
 
 
 def play_frequency(Fs):
-    # https://stackoverflow.com/questions/8299303/generating-sine-wave-sound-in-python/27978895#27978895
-
-    VOLUME = 0.5  # range [0.0, 1.0]
+    VOLUME = 0.1  # range [0.0, 1.0]
     SAMPLE_RATE = 44100  # sampling rate, Hz, must be integer
-    MOMENT_LENGTH = 0.05
+    MOMENT_LENGTH = 0.25
 
     def _sample(f):
-        # generate samples, note conversion to float32 array
-        sample = (np.sin(2 * np.pi * np.arange(SAMPLE_RATE * MOMENT_LENGTH) * f / SAMPLE_RATE)).astype(np.float32)
-
-        # per @yahweh comment explicitly convert to bytes sequence
+        sample = signal(f, SAMPLE_RATE, MOMENT_LENGTH)
         output_bytes = (VOLUME * sample).tobytes()
 
         return output_bytes
@@ -40,3 +35,8 @@ def play_frequency(Fs):
     stream.close()
 
     p.terminate()
+
+
+def signal(f, sample_rate, moment_length):
+    # generate samples, note conversion to float32 array
+    return (np.sin(2 * np.pi * np.arange(sample_rate * moment_length) * f / sample_rate)).astype(np.float32)

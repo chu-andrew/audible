@@ -1,22 +1,22 @@
 import encoding
+import compression
 
 
-def decode_txt_file(bitstring):
+def decode_txt_file(bitstring, compressed):
     input_string = int(bitstring, 2)
     num_bytes = (input_string.bit_length() + 7) // 8
-    input_array = input_string.to_bytes(num_bytes, "big")
+    byte = input_string.to_bytes(num_bytes, "big")
 
-    ascii_data = input_array.decode()
-    return ascii_data
-
-
-# look at anchor project for receiver
+    if compressed:  return compression.decompress(byte)
+    else:           return byte.decode()  # decode() has option for ignore Unicode errors
 
 
 if __name__ == "__main__":
+    compress = True
     data_file = "../Data/hello_world.txt"
-    bits = encoding.get_bitstring(data_file)
-    print(bits)
 
-    decoded = decode_txt_file(bits)
+    encoded = encoding.get_bitstring(data_file, compress)
+    print(encoded)
+
+    decoded = decode_txt_file(encoded, compress)
     print(decoded)
