@@ -32,9 +32,9 @@ if __name__ == '__main__':
     
     y = signal
     N = signal.length
-    Y_k = np.fft.fft(y)[0:int(N/2)]/N 
-    Y_k[1:] = 2*Y_k[1:] 
-    Pxx = np.abs(Y_k) 
+    yk = np.fft.fft(y)[0:int(N/2)]/N 
+    yk[1:] = 2*yk[1:] 
+    Pxx = np.abs(yk) 
     f = SAMPLE_RATE*np.arange((N/2))/N 
     fig,ax = plt.subplots()
     plt.plot(f,Pxx)
