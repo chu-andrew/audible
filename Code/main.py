@@ -1,10 +1,12 @@
 import audio
 import encoding
+import fourier
 
 
 def generator(data, chunk_len, num_channels, compress, debug):
     tones = encoding.get_tones(data, chunk_len, num_channels, compress, debug)
     audio.play_frequency(tones)
+
 
 
 if __name__ == '__main__':
@@ -15,4 +17,6 @@ if __name__ == '__main__':
     compression = False
     debug_print = False
 
-    generator(data_file, chunk_length, channels, compression, debug_print)
+    fourier.receive(14,44100,1024, 'test.wav'); generator(data_file, chunk_length, channels, compression, debug_print)
+
+

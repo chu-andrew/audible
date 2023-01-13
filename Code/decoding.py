@@ -13,6 +13,7 @@ def decode_txt_file(bitstring, compressed):
 
 if __name__ == "__main__":
     compress = True
+    #data_file = "../Data/hello_world.txt"
     data_file = "../Data/hello_world.txt"
 
     encoded = encoding.get_bitstring(data_file, compress)
@@ -20,3 +21,5 @@ if __name__ == "__main__":
 
     decoded = decode_txt_file(encoded, compress)
     print(decoded)
+
+
