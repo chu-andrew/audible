@@ -4,7 +4,7 @@ import fourier
 
 
 def generator(data, chunk_len, num_channels, compress, debug):
-    tones = encoding.get_tones(data, chunk_len, num_channels, compress, debug)
+    tones, tone_maps = encoding.get_tones(data, chunk_len, num_channels, compress, debug)
     audio.play_frequency(tones)
 
 

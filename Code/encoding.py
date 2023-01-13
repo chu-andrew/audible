@@ -10,6 +10,8 @@ def get_bitstring(filename, compress):
 
 
 def generate_tone_maps(chunk_len, channels):
+    # bits chunk : tone
+
     F_MIN = 200  # 1875.000  # Hz
     F_MAX = 5000  # 6328.125
 
@@ -68,10 +70,10 @@ def get_tones(data, chunk_len, channels, compress, debug):
         print(bits)
         for t_map in tone_maps: print(t_map)
 
-        inverse_tone_maps = [{v: k for k, v in tone_map.items()} for tone_map in tone_maps]
+        inverse = [{v: k for k, v in tone_map.items()} for tone_map in tone_maps]
         for moments in tones:
             for channel_num, tone in enumerate(moments):
-                print(f"{inverse_tone_maps[channel_num][tone]}\t{str(tone).zfill(4)}", end='\t\t')
+                print(f"{inverse[channel_num][tone]}\t{str(tone).zfill(4)}", end='\t\t')
             print()
 
     return tones

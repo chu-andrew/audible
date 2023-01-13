@@ -1,61 +1,39 @@
-import scipy
-import numpy as np
 from matplotlib import pyplot as plt
-import audio as ad
-import encoding
+import numpy as np
 import pyaudio
-import wave
-import sounddevice as sd
-import soundfile as sf
+import scipy
 import time
+import wave
+
+import audio
+import encoding
 
 
-def receive2(sample_rate, num_channels, tones): #attempt to record and play simultaneously
-    fs = sample_rate
-    duration = 14 #seconds
-    sd.playrec(ad.play_frequency(tones), sample_rate, channels = 2)
-    #sd.play(myrecording2, fs)
-    print("waitingggg")
-    #sd.wait()
-    #sd.play(myrecording, fs)
-    print("audio complete")
-  
-    sd.stop()
-def receive(record_seconds, rate, chunk,file_name):
-    format = pyaudio.paInt16
-    channels = 2
-
-    audio = pyaudio.PyAudio()
-    print("boom started")
-    stream = audio.open(format=format, channels = channels, rate = rate, input = True, frames_per_buffer = chunk)
+def receive(record_seconds, channels, chunk, rate, file_name):
+    FORMAT = pyaudio.paInt16
+    pa = pyaudio.PyAudio()
+    stream = pa.open(rate, channels, FORMAT, input=True, frames_per_buffer=chunk)
 
     audio_frames = []
-    
-    
-    ad.play_frequency(tones)
-    #while time.time() <= record_seconds:
     print("recording started")
-    for i in range(0, int(rate/chunk*record_seconds)): 
+    start = time.time()
+    for i in range(0, int(rate / chunk * record_seconds)):
         data = stream.read(chunk)
         audio_frames.append(data)
-
- 
-    print("recording ended")
+    end = time.time()
+    print(f"recording ended: {(end - start):.2f}s")
 
     stream.stop_stream()
     stream.close()
-    audio.terminate()
+    pa.terminate()
 
-    #commits data to wav file
-    waveFile = wave.open(file_name, 'wb')
-    waveFile.setnchannels(channels)
-    waveFile.setsampwidth(audio.get_sample_size(format))
-    waveFile.setframerate(rate)
-    waveFile.writeframes(b''.join(audio_frames))
-    waveFile.close()
-    
-
-    #samplesPerFrameOut = (sampleRateOut/SAMPLE_RATE)*samplesPerFrame
+    # commits data to wav file
+    wave_file = wave.open(file_name, 'wb')
+    wave_file.setnchannels(channels)
+    wave_file.setsampwidth(pa.get_sample_size(FORMAT))
+    wave_file.setframerate(rate)
+    wave_file.writeframes(b''.join(audio_frames))
+    wave_file.close()
 
 
 if __name__ == '__main__':
@@ -65,7 +43,7 @@ if __name__ == '__main__':
     THRESHOLD = 2500
 
     chunk_length = 4
-    channels = 2
+    channels = 1
     compression = False
     debug_print = False
 
@@ -73,22 +51,26 @@ if __name__ == '__main__':
 
     signal = np.array([])
     for t in tones:
-        signal = np.concatenate((signal, ad.signal(t, SAMPLE_RATE, 0.25)))
+        signal = np.concatenate((signal, audio.signal(t, SAMPLE_RATE, 0.25)))
+
+    '''
+    plt.title("SIGNAL")
+    plt.plot(signal)
+    plt.show()
+    '''
 
     yf = scipy.fft.rfft(signal)
     xf = scipy.fft.rfftfreq(len(signal), 1 / SAMPLE_RATE)
 
+    '''
+    plt.title("FOURIER SIGNAL")
     plt.plot(xf, np.abs(yf))
     plt.show()
+    '''
 
     peaks, _ = scipy.signal.find_peaks(yf, THRESHOLD)
     print(peaks)
-    print(len(peaks))
-    
-    print("Type 'start' to start recording")
-    if input() == 'start':  #initiates recording
-        receive(14, 44100, 2, 'pit.wav')
-        #receive2(44100, 2, tones)
+    print("# of Peaks:", len(peaks))
 
-    
-
+    if input('> ') == "start":  # initiates recording
+        receive(14, channels, chunk_length, SAMPLE_RATE, "../Data/microphone.wav")
