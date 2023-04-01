@@ -4,27 +4,28 @@ from auxiliary_functions import convert_to_bitstring, chunk_data
 def encode(data_file, protocol) -> list[list[float]]:
     """Main encoding function: converts data file to a sequence of tones."""
     bits = convert_to_bitstring(data_file, protocol)
-    tone_maps = generate_tone_maps(protocol, 200, 5000)
+    tone_maps = generate_tone_maps(protocol)
 
     tones = bits_to_tones(bits, tone_maps, protocol)
 
     if protocol.debug:
         print(bits)
-        for t_map in tone_maps: print(t_map)
+        for t_map in tone_maps:
+            print(t_map)
 
         inverse = [{v: k for k, v in tone_map.items()} for tone_map in tone_maps]
         for moments in tones:
             for channel_num, tone in enumerate(moments):
                 print(f"{inverse[channel_num][tone]}\t{str(tone).zfill(4)}", end='\t\t')
             print()
-
+        print(tones)
     return tones
 
 
-def generate_tone_maps(protocol, f_min, f_max) -> list[dict[str, int]]:
+def generate_tone_maps(protocol) -> list[dict[str, int]]:
     """Map every possible chunk of size chunk_len to a unique tone."""
 
-    f_range = f_max - f_min + 1
+    f_range = protocol.f_max - protocol.f_min + 1
     possibilities_per_channel = 2 ** protocol.chunk_len
 
     dF = f_range / (possibilities_per_channel * protocol.num_channels - 1)
@@ -33,7 +34,7 @@ def generate_tone_maps(protocol, f_min, f_max) -> list[dict[str, int]]:
 
     maps = []  # holds a tone_map per channel
 
-    prev_f = f_min
+    prev_f = protocol.f_min
     for _ in range(protocol.num_channels):
         tone_map = {"0".zfill(protocol.chunk_len): prev_f, }
 
