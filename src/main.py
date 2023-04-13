@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+
+import numpy as np
 import pyaudio
 
 import audio
@@ -9,9 +11,13 @@ class Protocol:
     num_channels: int
     sample_rate: int
     chunk_len: int
+    recording_seconds: float
 
     f_min: float
     f_max: float
+
+    np_format: np.dtype
+    pa_format: int
 
     moment_len: float  # defines how long each tone will be broadcast for
     volume: float  # [0.0, 1.0], used for pyaudio output
@@ -20,21 +26,23 @@ class Protocol:
     debug: bool
 
 
-protocol = Protocol(1, 44100, 4, 1875.0, 2500, 0.25, 0.1, True, True)
-data_file = "../data/hello_world.txt"
-output_file = "../data/microphone.wav"
-recording_seconds = 4
+if __name__ == '__main__':
 
-# made one global pyaudio because
-# https://stackoverflow.com/questions/34993895/cant-record-more-than-one-wave-with-pyaudio-no-default-output-device
-# unsure if this was actually the cause
-pa = pyaudio.PyAudio()
+    protocol = Protocol(1, 44100, 4, 8,
+                        1875.0, 2500,
+                        np.dtype(np.single), pyaudio.paFloat32,
+                        0.25, 0.1,
+                        True, True)
 
-'''
-if input("['play'] > "):
-    audio.transmit(data_file, protocol, pa)
-'''
-if input("[r]ecord > ") == "r":
-    audio.receive(protocol, output_file, recording_seconds, pa)
+    data_file = "../data/hello_world.txt"
+    output_file = "../data/microphone.wav"
 
-pa.terminate()
+    pa = pyaudio.PyAudio()
+
+    if input("[p]lay > ") == "p":
+        audio.transmit(data_file, protocol, pa)
+    if input("[r]ecord > ") == "r":
+        audio.receive(protocol, output_file, pa)
+    if input("[pl]ayback > ") == "pl":
+        audio.receive_wav(protocol, output_file, pa)
+    pa.terminate()

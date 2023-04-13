@@ -19,7 +19,7 @@ def transmit(data_file, protocol, pa):
 def play_frequency(tones, protocol, pa):
     """Play array of tones passed from encoding.encode()."""
     # for paFloat32 sample values must be in range [-1.0, 1.0]
-    stream = pa.open(format=pyaudio.paFloat32,
+    stream = pa.open(format=protocol.pa_format,
                      channels=protocol.num_channels,
                      rate=protocol.sample_rate,
                      output=True)
@@ -27,7 +27,6 @@ def play_frequency(tones, protocol, pa):
     print("Play data tones.")
     start_time = time.time()
     for freq in tqdm(tones):
-        print(freq)
         signal_i = generate_signal(freq, protocol.sample_rate, protocol.moment_len)
         bytes_i = (protocol.volume * signal_i).tobytes()
         stream.write(bytes_i)
@@ -38,22 +37,25 @@ def play_frequency(tones, protocol, pa):
     stream.close()
 
 
-def visualize_signal(signal, sample_rate, threshold):
+def visualize_signal(signal, sample_rate):
     print("Visualize signal.")
     plt.title("SIGNAL")
     plt.plot(signal)
     plt.show()
 
     yf = scipy.fft.rfft(signal)
+    yf = np.abs(yf)
     xf = scipy.fft.rfftfreq(len(signal), 1 / sample_rate)
 
-    plt.title("FOURIER SIGNAL")
-    plt.plot(xf, np.abs(yf))
-    plt.show()
+    peaks, _ = scipy.signal.find_peaks(yf)
+    max_peak = peaks[np.argmax(yf[peaks])]  # Find the index from the maximum peak
+    x_max = xf[max_peak]  # Find the x value from that index
 
-    peaks, _ = scipy.signal.find_peaks(yf, threshold)
-    print("Peaks:", peaks)
-    print("# of Peaks:", len(peaks))
+    plt.title("FOURIER")
+    plt.plot(xf, yf)
+    plt.axvline(x=x_max, label=f"Peak: {x_max:.2f}", ls="dotted", color="r")
+    plt.legend(loc='best')
+    plt.show()
 
 
 def generate_signal(moment_frequencies, sample_rate, moment_length):
@@ -68,9 +70,8 @@ def generate_signal(moment_frequencies, sample_rate, moment_length):
     return sample
 
 
-def receive(protocol, file_name, record_seconds, pa):
-    FORMAT = pyaudio.paInt16
-    stream = pa.open(protocol.sample_rate, protocol.num_channels, FORMAT, input=True,
+def receive(protocol, file_name, pa):
+    stream = pa.open(protocol.sample_rate, protocol.num_channels, protocol.pa_format, input=True,
                      frames_per_buffer=protocol.chunk_len)
 
     print("Start recording.")
@@ -78,7 +79,8 @@ def receive(protocol, file_name, record_seconds, pa):
 
     audio_frames = []
     # total bits = Hz / chunk bits * s
-    for i in range(0, int(protocol.sample_rate / protocol.chunk_len * record_seconds)):
+    total_num_bits = int(protocol.sample_rate / protocol.chunk_len * protocol.recording_seconds)
+    for i in range(0, total_num_bits):
         data = stream.read(protocol.chunk_len)
         audio_frames.append(data)
 
@@ -90,52 +92,71 @@ def receive(protocol, file_name, record_seconds, pa):
 
     # write data to wav file
     wave_file = wave.open(file_name, 'wb')
-    wave_file.setsampwidth(pa.get_sample_size(FORMAT))
+    wave_file.setsampwidth(pa.get_sample_size(protocol.pa_format))
     wave_file.setframerate(protocol.sample_rate)
     wave_file.setnchannels(protocol.num_channels)
     wave_file.writeframes(b''.join(audio_frames))
     wave_file.close()
 
-    # convert stream to np array
-    stream_int = convert_bytes_stream(audio_frames)
-    # print(len(audio_frames))
-    # visualize_signal(stream_int, protocol, 2500)
 
-    # TODO read https://www.samproell.io/posts/signal/peak-finding-python-js/
-    # perform fft on sliding window of np array to retrieve frequencies # TODO change window and loop lengths
-    window_frequencies = np.array([])
-    for i in range(0, int(protocol.sample_rate / protocol.chunk_len * record_seconds),
-                   int(protocol.sample_rate / protocol.chunk_len * protocol.moment_len / 2)):
-        window = stream_int[i:i + int(protocol.sample_rate / protocol.chunk_len * protocol.moment_len / 2)]
-        frequency = find_window_peak(window, protocol.sample_rate)
-        window_frequencies = np.append(window_frequencies, frequency)
+def receive_wav(protocol, file_name, pa):
+    wf = wave.open(file_name, 'rb')
+    stream = pa.open(format=protocol.pa_format,
+                     channels=protocol.num_channels,
+                     rate=protocol.sample_rate,
+                     output=True)
+
+    chunk = 1024
+    audio_frames = []
+    data = wf.readframes(chunk)
+    while data:
+        data = wf.readframes(chunk)
+        audio_frames.append(data)
+    wf.close()
+    stream.close()
+
+    stream_int = convert_bytes_stream(audio_frames)  # convert stream to np array
+
+    bits_per_second = protocol.sample_rate / protocol.chunk_len
+    total_num_bits = int(bits_per_second * protocol.recording_seconds)
+    window_num_bits = int(bits_per_second * protocol.moment_len / 4)
+
+    frequencies = []
+    for i in range(0, total_num_bits, window_num_bits):
+        window = stream_int[i:i + window_num_bits]
+        window_frequency = find_window_peak(window, protocol.sample_rate)
+        frequencies.append(window_frequency)
+
+    tones = encoding.encode("../data/hello_world.txt", protocol)
+    plt.plot(tones)
+    plt.plot(frequencies)
+    plt.ylabel("frequencies")
+    plt.show()
 
 
 def convert_bytes_stream(frames_bytes):
     """Convert the bytes data from the PyAudio stream into a numpy array."""
     frames_int = np.array([])
     for bytes in frames_bytes:
-        frames_int_i = np.frombuffer(bytes, dtype=np.int16)
+        frames_int_i = np.frombuffer(bytes, dtype=np.single)
         frames_int = np.concatenate((frames_int, frames_int_i))
     return frames_int
 
 
-def find_window_peak(window, sample_rate):
+def find_window_peak(signal, sample_rate):
     """Find most important frequency in given window of stream."""
-    xf = scipy.fft.rfftfreq(len(window), 1 / sample_rate)
-    yf = scipy.fft.rfft(window)
-    peaks, properties = scipy.signal.find_peaks(yf)
+    yf = scipy.fft.rfft(signal)
+    yf = np.abs(yf)
+    xf = scipy.fft.rfftfreq(len(signal), 1 / sample_rate)
 
-    max_height_peak = np.nan
-    if len(peaks > 0):
-        max_height = properties["peak_heights"].max()
-        for peak, height in zip(peaks, properties["peak_heights"]):
-            if height == max_height: max_height_peak = peak  # TODO may cause problems if multiple peaks with same height
+    peaks, _ = scipy.signal.find_peaks(yf)
+    max_peak = peaks[np.argmax(yf[peaks])]  # Find the index from the maximum peak
+    x_max = xf[max_peak]  # Find the x value from that index
 
-        plt.title(f"FOURIER SIGNAL {max_height_peak}")
-        plt.plot(xf, np.abs(yf))
-        plt.show()
+    # plt.title("FOURIER")
+    # plt.plot(xf, yf)
+    # plt.axvline(x=x_max, label=f"Peak: {x_max:.2f}", ls="dotted", color="r")
+    # plt.legend(loc='best')
+    # plt.show()
 
-        # print(peaks, max_height_peak)
-
-    return max_height_peak
+    return x_max
