@@ -1,4 +1,3 @@
-import pyaudio
 import wave
 import numpy as np
 import time
@@ -38,7 +37,7 @@ def play_frequency(tones, protocol, pa):
 
 
 def visualize_signal(signal, sample_rate):
-    print("Visualize signal.")
+    print("Visualize signal and fourier transform.")
     plt.title("SIGNAL")
     plt.plot(signal)
     plt.show()
@@ -115,22 +114,31 @@ def receive_wav(protocol, file_name, pa):
     wf.close()
     stream.close()
 
-    stream_int = convert_bytes_stream(audio_frames)  # convert stream to np array
+    np_stream = convert_bytes_stream(audio_frames)  # convert stream to np array
 
     bits_per_second = protocol.sample_rate / protocol.chunk_len
-    total_num_bits = int(bits_per_second * protocol.recording_seconds)
-    window_num_bits = int(bits_per_second * protocol.moment_len / 4)
+    segment_size = int(bits_per_second * protocol.moment_len)
+
+    f, t, Zxx = scipy.signal.stft(np_stream, protocol.sample_rate, nperseg=segment_size)
+    Zxx = np.abs(Zxx)
+
+    plt.pcolormesh(t, f, Zxx, shading="gouraud")
+    plt.title("STFT Magnitude")
+    plt.ylabel("Frequency [Hz]")
+    plt.xlabel("Time [sec]")
+    plt.show()
+
+    Zxx = np.transpose(Zxx)  # flip rows/cols to get each sample's fft in each row
 
     frequencies = []
-    for i in range(0, total_num_bits, window_num_bits):
-        window = stream_int[i:i + window_num_bits]
-        window_frequency = find_window_peak(window, protocol.sample_rate)
-        frequencies.append(window_frequency)
+    for sample_stft in Zxx:
+        peaks, _ = scipy.signal.find_peaks(sample_stft)
+        max_peak_index = peaks[np.argmax(sample_stft[peaks])]  # Find the index from the maximum peak
+        freq = f[max_peak_index]
 
-    tones = encoding.encode("../data/hello_world.txt", protocol)
-    plt.plot(tones)
-    plt.plot(frequencies)
-    plt.ylabel("frequencies")
+        frequencies.append(freq)
+
+    plt.plot(t, frequencies)
     plt.show()
 
 
@@ -141,22 +149,3 @@ def convert_bytes_stream(frames_bytes):
         frames_int_i = np.frombuffer(bytes, dtype=np.single)
         frames_int = np.concatenate((frames_int, frames_int_i))
     return frames_int
-
-
-def find_window_peak(signal, sample_rate):
-    """Find most important frequency in given window of stream."""
-    yf = scipy.fft.rfft(signal)
-    yf = np.abs(yf)
-    xf = scipy.fft.rfftfreq(len(signal), 1 / sample_rate)
-
-    peaks, _ = scipy.signal.find_peaks(yf)
-    max_peak = peaks[np.argmax(yf[peaks])]  # Find the index from the maximum peak
-    x_max = xf[max_peak]  # Find the x value from that index
-
-    # plt.title("FOURIER")
-    # plt.plot(xf, yf)
-    # plt.axvline(x=x_max, label=f"Peak: {x_max:.2f}", ls="dotted", color="r")
-    # plt.legend(loc='best')
-    # plt.show()
-
-    return x_max
