@@ -4,6 +4,7 @@ import numpy as np
 import pyaudio
 
 import audio
+import decoding
 
 
 @dataclass
@@ -35,14 +36,16 @@ if __name__ == '__main__':
                         True, True)
 
     data_file = "../data/hello_world.txt"
-    output_file = "../data/microphone.wav"
+    recording_file = "../data/microphone.wav"
 
     pa = pyaudio.PyAudio()
 
     if input("[p]lay > ") == "p":
         audio.transmit(data_file, protocol, pa)
     if input("[r]ecord > ") == "r":
-        audio.receive(protocol, output_file, pa)
+        audio.receive(protocol, recording_file, pa)
     if input("[pl]ayback > ") == "pl":
-        audio.receive_wav(protocol, output_file, pa)
+        frames = audio.receive_wav(protocol, recording_file, pa)
+        decoding.decode(frames, protocol)
+
     pa.terminate()
