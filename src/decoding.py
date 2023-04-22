@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import time
 from matplotlib import pyplot as plt
 
 import encoding
@@ -11,7 +12,7 @@ def decode(frames, protocol):
     f, t, Zxx = short_time_fourier(signal, protocol)
     freqs = fourier_peaks(f, t, Zxx)
     sampled_bitstring = process_tones(freqs, protocol)
-    decode_txt_file(sampled_bitstring,
+    output_txt_file(sampled_bitstring,
                     compressed=False)  # TODO resolve discrepancy between protocol and actual when compression is cancelled
 
 
@@ -132,15 +133,12 @@ def condense(samples):
     return condensed
 
 
-def decode_txt_file(bitstring, compressed):
+def output_txt_file(bitstring, compressed):
     input_string = int(bitstring, 2)
     num_bytes = (input_string.bit_length() + 7) // 8
     byte = input_string.to_bytes(num_bytes, "big")
 
-    if compressed:
-        byte = auxiliary_functions.decompress(byte)
-    else:
-        byte = byte.decode()  # decode() has option for ignore Unicode errors
-    print(byte, type(byte))
+    if compressed: auxiliary_functions.decompress(byte)
 
-    # TODO write bytes to file
+    with open(f"../data/{time.strftime('%m%d-%H%M%S')}.txt", "wb") as f:
+        f.write(byte)
