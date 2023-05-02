@@ -16,6 +16,7 @@ class Protocol:
 
     f_min: float
     f_max: float
+    # start_stop_f: float
 
     np_format: np.dtype
     pa_format: int
@@ -33,7 +34,7 @@ if __name__ == '__main__':
                         1875.0, 2500,
                         np.dtype(np.single), pyaudio.paFloat32,
                         0.25, 0.1,
-                        True, True)
+                        False, True)
 
     data_file = "../data/hello_world.txt"
     recording_file = "../data/microphone.wav"
@@ -43,9 +44,20 @@ if __name__ == '__main__':
     if input("[p]lay > ") == "p":
         audio.transmit(data_file, protocol, pa)
     if input("[r]ecord > ") == "r":
-        audio.receive(protocol, recording_file, pa)
+        frames = audio.receive(protocol, recording_file, pa)
+        decoding.decode(frames, protocol)
     if input("[pl]ayback > ") == "pl":
         frames = audio.receive_wav(protocol, recording_file, pa)
         decoding.decode(frames, protocol)
 
     pa.terminate()
+
+# TODO
+'''
+add protocol data to the front of transmission
+add start and end markers to transmission
+implement continuous listening from audio.receive()
+add error correction
+add variable thresholding for fourier peaks
+implement changing use of compression (turn on or off based on size change)
+'''

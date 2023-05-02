@@ -4,12 +4,17 @@ import bitstring
 
 def compress(bytes_data) -> bytes:
     compressed = lzma.compress(bytes_data)
+    '''
+    # TODO it would be ideal to avoid compression if size is increased. is there a way to encode whether compression has been applied to the output tones?
     if len(compressed) >= len(bytes_data):
         print("LZMA compression increased the size of the data. Cancelling compression.")
         return bytes_data
     else:
         print(f"LZMA compressed: {(1 - len(compressed) / len(bytes_data)) * 100:.2f}%")
         return compressed
+    '''
+    print(f"LZMA compressed: {(1 - len(compressed) / len(bytes_data)) * 100:.2f}%")
+    return compressed
 
 
 def decompress(bytes_data) -> bytes:
