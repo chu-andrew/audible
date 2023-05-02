@@ -16,7 +16,6 @@ class Protocol:
 
     f_min: float
     f_max: float
-    # start_stop_f: float
 
     np_format: np.dtype
     pa_format: int
@@ -37,7 +36,7 @@ if __name__ == '__main__':
                         False, True)
 
     data_file = "../data/hello_world.txt"
-    recording_file = "../data/microphone.wav"
+    recording_file = "../data/hello_world_with_nums.wav"
 
     pa = pyaudio.PyAudio()
 

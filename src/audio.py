@@ -1,9 +1,6 @@
 import wave
 import numpy as np
 import time
-
-import scipy
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 import encoding

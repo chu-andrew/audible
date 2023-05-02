@@ -9,10 +9,9 @@ import auxiliary_functions
 
 def decode(frames, protocol):
     signal = convert_bytes_stream(frames)
-    f, t, Zxx = short_time_fourier(signal, protocol)
-    freqs = fourier_peaks(f, t, Zxx)
-
-    sampled_bitstring = process_tones(freqs, protocol)
+    fourier_data = short_time_fourier(signal, protocol)
+    peaks = filter_peaks(*fourier_data)
+    sampled_bitstring = frequencies_to_bits(peaks, protocol)
     output_txt_file(sampled_bitstring, protocol.compressed)
 
 
@@ -42,11 +41,7 @@ def short_time_fourier(signal, protocol):
     plt.show()
     # '''
 
-    return f, t, Zxx
-
-
-def fourier_peaks(f, t, Zxx):
-    """From the STFT data, find and filter relevant area using peak heights."""
+    # extract relevant information from STFT (dominant freq and peak height)
     Zxx = np.transpose(Zxx)  # flip rows/cols to get each sample's fft in each row
 
     frequencies = []
@@ -62,13 +57,12 @@ def fourier_peaks(f, t, Zxx):
         frequencies.append(freq)
         heights.append(max_height)
 
-    peaks = filter_peaks(frequencies, heights, t)
-    return peaks
+    return frequencies, heights, t
 
 
 def filter_peaks(frequencies, heights, t):
     """Remove all peaks of insufficient height (strength of signal) and return area of interest."""
-    # FIXME: JJ
+    # FIXME: JJ [input: frequencies, heights; output: freqs from area of interest]
     # TODO this is a naive method that may lead to 0s within data area
     MIN_PEAK_HEIGHT = 0.001  # determined with stft heights plot # TODO is there a way to not use a constant?
     filtered = frequencies.copy()
@@ -92,15 +86,17 @@ def filter_peaks(frequencies, heights, t):
     return filtered
 
 
-def process_tones(freqs, protocol):
+def frequencies_to_bits(freqs, protocol):
     """Convert sampled tones to bitstring."""
     # retrieve list of possible emitted tones based on protocol
     tone_map = encoding.generate_tone_maps(protocol)
     inverse = {v: k for k, v in tone_map.items()}
     possible_tones = list(inverse.keys())
+    possible_tones.insert(0, 0)  # may help to weed out bad values??? not completely sure #FIXME
 
     # quantize the sampled tones by finding the nearest match
     quantized = [find_closest(freq, possible_tones) for freq in freqs]
+
     # '''
     # View how sampled tones are quantized.
     plt.plot(freqs, "ro")
