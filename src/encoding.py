@@ -26,17 +26,16 @@ def generate_tone_maps(protocol) -> dict[str, int]:
     f_range = protocol.f_max - protocol.f_min + 1
     possibilities_per_channel = 2 ** protocol.chunk_len
 
-    dF = f_range / (possibilities_per_channel * protocol.num_channels - 1)
+    dF = int(f_range / (possibilities_per_channel * protocol.num_channels - 1))
     assert f_range > possibilities_per_channel * protocol.num_channels
-    assert dF > 1
+    assert dF >= 1
 
     prev_f = protocol.f_min
     tone_map = {"0".zfill(protocol.chunk_len): prev_f, }
 
-    # TODO use of round() means frequencies are not exactly within bounds
     for i in range(1, possibilities_per_channel):
         num = bin(i)[2:].zfill(protocol.chunk_len)
-        tone_map[num] = round(prev_f + dF)
+        tone_map[num] = prev_f + dF
         prev_f = tone_map[num]
 
     return tone_map

@@ -1,0 +1,7 @@
+bitstring==4.0.2
+matplotlib==3.7.1
+numpy==1.25.0
+pyaudio==0.2.13
+PyYAML==6.0
+scipy==1.11.0
+tqdm==4.65.0

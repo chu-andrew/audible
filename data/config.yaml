@@ -1,0 +1,16 @@
+num_channels: 1
+sample_rate: 44100
+chunk_len: 4
+recording_seconds: 8
+
+f_min: 1875
+f_max: 2500
+
+np_format: np.dtype(np.single)
+pa_format: pyaudio.paFloat32
+
+moment_len:  0.25
+volume: 0.1
+
+compressed: False
+debug: True
