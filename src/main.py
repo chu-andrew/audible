@@ -1,31 +1,31 @@
 import pyaudio
 
-import audio
+from transmitter import Transmitter
+import receiver
 import decoding
 from protocol import Protocol
 
-if __name__ == '__main__':
-    protocol = Protocol("../data/config.yaml")
-
-    data_file = "../data/hello_world.txt"
-    recording_file = "../data/hello_world_with_nums.wav"
-
+if __name__ == "__main__":
+    protocol = Protocol()
     pa = pyaudio.PyAudio()
 
+    data_file = "../data/empty.txt"
+    recording_file = "../data/hello_world_with_nums.wav"
+
+    transmitter = Transmitter(protocol, pa)
     if input("[p]lay > ") == "p":
-        audio.transmit(data_file, protocol, pa)
+        transmitter.transmit(data_file)
     if input("[r]ecord > ") == "r":
-        frames = audio.receive(protocol, recording_file, pa)
+        frames = receiver.receive(protocol, recording_file, pa)
         decoding.decode(frames, protocol)
     if input("[pl]ayback > ") == "pl":
-        frames = audio.receive_wav(protocol, recording_file, pa)
+        frames = receiver.receive_wav(protocol, recording_file, pa)
         decoding.decode(frames, protocol)
 
     pa.terminate()
 
 # TODO
 '''
-add start and end markers to transmission
 implement continuous listening from audio.receive()
 add error correction
 add protocol data to the front of transmission

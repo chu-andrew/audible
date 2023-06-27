@@ -5,11 +5,12 @@ recording_seconds: 8
 
 f_min: 1875
 f_max: 2500
+f_indicator: [ 1800, 2550 ]
 
 np_format: np.dtype(np.single)
 pa_format: pyaudio.paFloat32
 
-moment_len:  0.25
+moment_len: 0.25
 volume: 0.1
 
 compressed: False

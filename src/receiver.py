@@ -1,50 +1,14 @@
 import wave
-import numpy as np
 import time
-from tqdm import tqdm
-
-import encoding
 
 
-def transmit(data_file, protocol, pa):
-    """Main function for encoding and transmitting data as sound."""
-    tones = encoding.encode(data_file, protocol)
-    play_frequency(tones, protocol, pa)
-
-
-def play_frequency(tones, protocol, pa):
-    """Play array of tones passed from encoding.encode()."""
-
-    # for paFloat32 sample values must be in range [-1.0, 1.0]
-    stream = pa.open(format=protocol.pa_format,
-                     channels=protocol.num_channels,
-                     rate=protocol.sample_rate,
-                     output=True)
-
-    print("Play data tones.")
-    start_time = time.time()
-    for freq in tqdm(tones):
-        signal_i = generate_signal(freq, protocol.sample_rate, protocol.moment_len)
-        bytes_i = (protocol.volume * signal_i).tobytes()
-        stream.write(bytes_i)
-    end_time = time.time()
-    print("Played data tones for {:.2f} seconds".format(end_time - start_time))
-
-    stream.stop_stream()
-    stream.close()
-
-
-def generate_signal(moment_frequency, sample_rate, moment_length):
-    """Generate part of the signal (moment), with the given frequency, rate, and length."""
-    sample = (np.sin(2 * np.pi * np.arange(sample_rate * moment_length) * moment_frequency / sample_rate)).astype(
-        np.float32)
-
-    return sample
-
-
+# TODO transition to a continuous recording system with wrappers for optional time limits and wav writing
 def receive(protocol, file_name, pa):
     """Get audio frames from microphone."""
-    stream = pa.open(protocol.sample_rate, protocol.num_channels, protocol.pa_format, input=True,
+    stream = pa.open(protocol.sample_rate,
+                     protocol.num_channels,
+                     protocol.pa_format,
+                     input=True,
                      frames_per_buffer=protocol.chunk_len)
 
     print("Start recording.")

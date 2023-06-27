@@ -3,7 +3,6 @@ import scipy
 import time
 from matplotlib import pyplot as plt
 
-import encoding
 import auxiliary_functions
 
 
@@ -60,7 +59,7 @@ def short_time_fourier(signal, protocol):
     return frequencies, heights, t
 
 
-def filter_peaks(frequencies, heights, t):
+def filter_peaks(frequencies, heights, t) -> list[float]:
     """Remove all peaks of insufficient height (strength of signal) and return area of interest."""
     # FIXME: JJ [input: frequencies, heights; output: freqs from area of interest]
     # TODO this is a naive method that may lead to 0s within data area
@@ -86,10 +85,10 @@ def filter_peaks(frequencies, heights, t):
     return filtered
 
 
-def frequencies_to_bits(freqs, protocol):
+def frequencies_to_bits(freqs, protocol) -> str:
     """Convert sampled tones to bitstring."""
     # retrieve list of possible emitted tones based on protocol
-    tone_map = encoding.generate_tone_maps(protocol)
+    tone_map = auxiliary_functions.generate_tone_maps(protocol)
     inverse = {v: k for k, v in tone_map.items()}
     possible_tones = list(inverse.keys())
     possible_tones.insert(0, 0)  # may help to weed out bad values??? not completely sure #FIXME
@@ -118,7 +117,7 @@ def frequencies_to_bits(freqs, protocol):
     return sampled_bitstring
 
 
-def find_closest(num, sorted_vals):
+def find_closest(num, sorted_vals) -> int:
     closest_val = sorted_vals[0]
     for val in sorted_vals:
         if abs(val - num) < abs(closest_val - num): closest_val = val
@@ -126,7 +125,7 @@ def find_closest(num, sorted_vals):
     return closest_val
 
 
-def condense(samples):
+def condense(samples) -> list[list[int, int]]:
     """Turn the list of tones into a (freq, number of consecutive samples)."""
     condensed = []
     current_sample = None
@@ -142,7 +141,7 @@ def condense(samples):
     return condensed
 
 
-def output_txt_file(bitstring, compressed):
+def output_txt_file(bitstring, compressed) -> None:
     input_string = int(bitstring, 2)
     num_bytes = (input_string.bit_length() + 7) // 8
     byte = input_string.to_bytes(num_bytes, "big")

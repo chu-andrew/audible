@@ -1,5 +1,25 @@
 import lzma
-import bitstring
+
+
+def generate_tone_maps(protocol) -> dict[str, int]:
+    """Map every possible chunk of size chunk_len to a unique tone."""
+
+    f_range = protocol.f_max - protocol.f_min + 1
+    possibilities_per_channel = 2 ** protocol.chunk_len
+
+    dF = int(f_range / (possibilities_per_channel * protocol.num_channels - 1))
+    assert f_range > possibilities_per_channel * protocol.num_channels
+    assert dF >= 1
+
+    prev_f = protocol.f_min
+    tone_map = {"0".zfill(protocol.chunk_len): prev_f, }
+
+    for i in range(1, possibilities_per_channel):
+        num = bin(i)[2:].zfill(protocol.chunk_len)
+        tone_map[num] = prev_f + dF
+        prev_f = tone_map[num]
+
+    return tone_map
 
 
 def compress(bytes_data) -> bytes:
@@ -20,31 +40,3 @@ def compress(bytes_data) -> bytes:
 def decompress(bytes_data) -> bytes:
     decompressed = lzma.decompress(bytes_data)
     return decompressed
-
-
-def convert_to_bitstring(filename, protocol) -> str:
-    with open(filename, 'rb') as f:
-        data = f.read()
-        if protocol.compressed:
-            data = compress(data)
-
-    return str(bitstring.BitArray(data).bin)
-
-
-def chunk_data(bitstring, chunk_len):
-    for i in range(0, len(bitstring), chunk_len):
-        chunk = bitstring[i:i + chunk_len]
-        yield chunk
-
-
-def decode_txt_file(bitstring, compressed):
-    """Decode an encoded bitstring back into a text file."""
-
-    input_string = int(bitstring, 2)
-    num_bytes = (input_string.bit_length() + 7) // 8
-    byte = input_string.to_bytes(num_bytes, "big")
-
-    if compressed:
-        return decompress(byte)
-    else:
-        return byte.decode()  # decode() has option for ignore Unicode errors
