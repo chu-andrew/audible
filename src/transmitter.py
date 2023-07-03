@@ -1,7 +1,8 @@
 import numpy as np
 from dataclasses import dataclass
-from typing import Any
+import wave
 import time
+from typing import Any
 from tqdm import tqdm
 
 from protocol import Protocol
@@ -32,17 +33,33 @@ class Transmitter:
                               rate=self.protocol.sample_rate,
                               output=True)
 
+        bytes = []
+
         print("Play data tones.")
         start_time = time.time()
+
         for freq in tqdm(tones):
             signal_i = self._generate_signal(freq)
             bytes_i = (self.protocol.volume * signal_i).tobytes()
+            bytes.append(bytes_i)
             stream.write(bytes_i)
+
         end_time = time.time()
         print("Played data tones for {:.2f} seconds".format(end_time - start_time))
 
+        self.write_tones(bytes)
+
         stream.stop_stream()
         stream.close()
+
+    def write_tones(self, bytes):
+        wave_file = wave.open(f"../data/transmitter_{time.strftime('%m%d-%H%M%S')}.wav", "wb")
+
+        wave_file.setnchannels(self.protocol.num_channels)
+        wave_file.setsampwidth(self.pa.get_sample_size(self.protocol.pa_format))
+        wave_file.setframerate(self.protocol.sample_rate)
+        wave_file.writeframes(b''.join(bytes))
+        wave_file.close()
 
     def _generate_signal(self, moment_frequency):
         """Generate part of the signal with the given frequency, rate, and length."""

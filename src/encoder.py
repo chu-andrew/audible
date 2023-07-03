@@ -27,10 +27,7 @@ class Encoder:
 
             inverse = {v: k for k, v in self.tone_map.items()}
             for tone in self.tones:
-                try:
-                    print(f"{inverse[tone]}\t{str(tone).zfill(4)}")
-                except KeyError:
-                    print(f"indicator\t{str(tone).zfill(4)}")
+                print(f"{inverse[tone]}\t{str(tone).zfill(4)}")
 
         return self.tones
 

@@ -12,12 +12,16 @@ def generate_tone_maps(protocol) -> dict[str, int]:
     assert dF >= 1
 
     prev_f = protocol.f_min
-    tone_map = {"0".zfill(protocol.chunk_len): prev_f, }
+    tone_map = {"indicator_a": protocol.f_indicator[0],
+                "0".zfill(protocol.chunk_len): prev_f, }
 
     for i in range(1, possibilities_per_channel):
         num = bin(i)[2:].zfill(protocol.chunk_len)
         tone_map[num] = prev_f + dF
         prev_f = tone_map[num]
+
+    # indicator tones
+    tone_map["indicator_b"] = protocol.f_indicator[1]
 
     return tone_map
 

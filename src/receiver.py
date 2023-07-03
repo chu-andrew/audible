@@ -1,61 +1,89 @@
+import pyaudio
 import wave
 import time
+from dataclasses import dataclass
+from typing import Any
+
+from protocol import Protocol
+from src.decoder import Decoder
 
 
-# TODO transition to a continuous recording system with wrappers for optional time limits and wav writing
-def receive(protocol, file_name, pa):
-    """Get audio frames from microphone."""
-    stream = pa.open(protocol.sample_rate,
-                     protocol.num_channels,
-                     protocol.pa_format,
-                     input=True,
-                     frames_per_buffer=protocol.chunk_len)
+@dataclass
+class Receiver:
+    protocol: Protocol
+    pa: Any
 
-    print("Start recording.")
-    start = time.time()
+    decoder: Decoder = None
 
-    audio_frames = []
-    # total bits = Hz / chunk bits * s
-    total_num_bits = int(protocol.sample_rate / protocol.chunk_len * (protocol.recording_seconds * 2))
-    for i in range(0, total_num_bits):
-        data = stream.read(protocol.chunk_len)
-        audio_frames.append(data)
+    def __post_init__(self):
+        self.decoder = Decoder(self.protocol)
 
-    end = time.time()
-    print(f"Recorded for {(end - start):.2f}s.")
+    def receive_mic(self):
+        """Get audio frames from microphone."""
 
-    stream.stop_stream()
-    stream.close()
+        def callback_mic(in_data, frame_count, time_info, status):
+            self.decoder.write_to_buffer(in_data)
+            return in_data, pyaudio.paContinue
 
-    # '''
-    # write data to wav file
-    wave_file = wave.open(file_name, 'wb')
-    wave_file.setsampwidth(pa.get_sample_size(protocol.pa_format))
-    wave_file.setframerate(protocol.sample_rate)
-    wave_file.setnchannels(protocol.num_channels)
-    wave_file.writeframes(b''.join(audio_frames))
-    wave_file.close()
-    print(f"Recording successfully written to {file_name}.")
-    # '''
+        stream = self.pa.open(format=self.protocol.pa_format,
+                              channels=self.protocol.num_channels,
+                              rate=self.protocol.sample_rate,
+                              frames_per_buffer=self.protocol.chunk_len,
+                              input=True,
+                              stream_callback=callback_mic)
 
-    return audio_frames
+        print("Start recording.")
 
+        start = time.time()
+        while stream.is_active() and (time.time() - start) < self.protocol.recording_seconds:
+            time.sleep(0.001)
 
-def receive_wav(protocol, file_name, pa):
-    """Get audio frames from existing wav file."""
-    wf = wave.open(file_name, 'rb')
-    stream = pa.open(format=protocol.pa_format,
-                     channels=protocol.num_channels,
-                     rate=protocol.sample_rate,
-                     output=True)
+        end = time.time()
+        print(f"Recorded for {(end - start):.2f}s.")
 
-    chunk = 1024
-    audio_frames = []
-    wav_data = wf.readframes(chunk)
-    while wav_data:
-        wav_data = wf.readframes(chunk)
-        audio_frames.append(wav_data)
-    wf.close()
-    stream.close()
+        stream.close()
 
-    return audio_frames
+        # write data to wav file
+        file_name = "../data/example2.wav"
+        wave_file = wave.open(file_name, 'wb')
+        wave_file.setsampwidth(self.pa.get_sample_size(self.protocol.pa_format))
+        wave_file.setframerate(self.protocol.sample_rate)
+        wave_file.setnchannels(self.protocol.num_channels)
+        wave_file.writeframes(b''.join(self.decoder.frames_buffer))
+        wave_file.close()
+        print(f"Recording successfully written to {file_name}.")
+
+    def receive_wav(self, file_name):
+        """Get audio frames from existing wav file."""
+
+        def callback_wav(in_data, frame_count, time_info, status):
+            frames = wf.readframes(frame_count)
+            self.decoder.write_to_buffer(frames)
+            return frames, pyaudio.paContinue
+
+        wf = wave.open(file_name, 'rb')
+        stream = self.pa.open(format=self.protocol.pa_format,
+                              channels=self.protocol.num_channels,
+                              rate=self.protocol.sample_rate,
+                              output=True,
+                              frames_per_buffer=4096,
+                              stream_callback=callback_wav)
+
+        while stream.is_active():
+            time.sleep(0.001)
+
+        self.decoder.write_to_buffer(flush_buffer=True)
+
+        wf.close()
+        stream.close()
+
+    def simulate_receive_wav(self, file_name):
+        wf = wave.open(file_name, 'rb')
+
+        for i in range(wf.getnframes() // 47):
+            frames = wf.readframes(47)
+            self.decoder.write_to_buffer(frames)
+
+        self.decoder.write_to_buffer(flush_buffer=True)
+
+        wf.close()
